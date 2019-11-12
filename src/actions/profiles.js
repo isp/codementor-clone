@@ -17,6 +17,7 @@ import {
   hireFreelancerUrl
 } from '../endpoints';
 import { addToken } from '../utils';
+import { displayMessage } from './messages';
 
 
 export const loadFreelancerList = () => dispatch => {
@@ -24,9 +25,9 @@ export const loadFreelancerList = () => dispatch => {
   axios.get(freelancerListUrl)
     .then(response => dispatch({ type: FREELANCER_LIST_LOADED, payload: response.data }))
     .catch(error => {
-        dispatch({ type: FREELANCER_LIST_ERROR });
-        console.log(error)
-      });
+      dispatch({ type: FREELANCER_LIST_ERROR });
+      console.log(error)
+    });
 };
 
 
@@ -38,9 +39,10 @@ export const loadProfile = (id, prepopulateForm) => dispatch => {
       if (prepopulateForm) prepopulateForm(response.data)
     })
     .catch(error => {
-        dispatch({ type: PROFILE_ERROR });
-        console.log(error)
-      });
+      dispatch({ type: PROFILE_ERROR });
+      dispatch(displayMessage('danger', error.response.data));
+      console.log(`Status: ${error.response.status}`, error.response.data)
+    });
 };
 
 
@@ -54,38 +56,32 @@ const headers = {
 
 export const editProfile = (profile, history) => dispatch => {
   const data = new FormData();
-  const user = {
-    'user': {
-      username: profile.username,
-      email: profile.email,
-      first_name: profile.first_name,
-      last_name: profile.last_name
-    }
-  };
-  data.append('user', JSON.stringify(user));
 
-  let freelancer;
-  if (profile.freelancer) {
-    freelancer = {
-      freelancer: {
-        bio: profile.bio,
-        technologies: profile.technologies
-      }
-    };
-    data.append('freelancer', JSON.stringify(freelancer));
-  }
+  data.append('username', profile.username);
+  data.append('email', profile.email);
+  data.append('first_name', profile.first_name);
+  data.append('last_name', profile.last_name);
 
   data.append('photo', profile.photoFile);
   data.append('social_accounts', profile.social_accounts);
   data.append('timezone', profile.timezone);
   data.append('languages', profile.languages);
 
+  if (profile.freelancer) {
+    data.append('bio', profile.bio);
+    data.append('technologies', profile.technologies);
+  }
+
   axios.put(profileDetailEditDeleteUrl(profile.id), data, headers)
-    .then(response => dispatch({ type: PROFILE_LOADED, payload: response.data }))
+    .then(response => {
+      dispatch({ type: PROFILE_LOADED, payload: response.data });
+      history.push(`/profile/${profile.id}`)
+    })
     .catch(error => {
-        dispatch({ type: PROFILE_ERROR });
-        console.log(error.response.data)
-      });
+      dispatch({ type: PROFILE_ERROR });
+      dispatch(displayMessage('danger', error.response.data));
+      console.log(`Status: ${error.response.status}`, error.response.data)
+    });
 };
 
 
@@ -97,21 +93,25 @@ export const deleteProfile = (id, history) => dispatch => {
       dispatch({ type: AUTH_LOGOUT});
       history.push('/')
     })
-    .catch(error => console.log(error));
+    .catch(error => {
+      dispatch(displayMessage('danger', error.response.data));
+      console.log(`Status: ${error.response.status}`, error.response.data)
+    });
 };
 
 
-export const becomeFreelancer = (data, setFormIsVisible, setAlertIsVisible) => dispatch => {
+export const becomeFreelancer = (data, setFormIsVisible) => dispatch => {
   axios.post(becomeFreelancerUrl, data, addToken())
     .then(response => {
       dispatch({ type: PROFILE_LOADED, payload: response.data });
       setFormIsVisible(false);
-      setAlertIsVisible(true)
+      dispatch(displayMessage('success', 'Success! You\'ve become a freelancer.'))
     })
     .catch(error => {
-        dispatch({ type: PROFILE_ERROR });
-        console.log(error)
-      });
+      dispatch({ type: PROFILE_ERROR });
+      dispatch(displayMessage('danger', error.response.data));
+      console.log(`Status: ${error.response.status}`, error.response.data)
+    });
 };
 
 
@@ -121,17 +121,20 @@ export const unbecomeFreelancer = () => dispatch => {
       dispatch({ type: PROFILE_LOADED, payload: response.data });
     })
     .catch(error => {
-        dispatch({ type: PROFILE_ERROR });
-        console.log(error)
-      });
+      dispatch({ type: PROFILE_ERROR });
+      dispatch(displayMessage('danger', error.response.data));
+      console.log(`Status: ${error.response.status}`, error.response.data)
+    });
 };
 
 
 export const hireFreelancer = (freelancer_id, job_id) => dispatch => {
   axios.get(hireFreelancerUrl(freelancer_id, job_id), addToken())
     .then(response => dispatch({ type: PROFILE_LOADED, payload: response.data }))
-    .catch(error => console.log(error.response.data));
+    .catch(error => {
+      dispatch(displayMessage('danger', error.response.data));
+      console.log(`Status: ${error.response.status}`, error.response.data)
+    });
 };
-
 
 // todo implement logout function inside deleteProfile function
