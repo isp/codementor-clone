@@ -15,7 +15,19 @@ class Job(models.Model):
     deadline = models.DateField()
     budget = models.PositiveIntegerField()
     timestamp = models.DateTimeField(auto_now_add=True)
+    payment = models.ForeignKey('Payment', on_delete=models.SET_NULL, blank=True, null=True)
     taken = models.BooleanField(default=False)
+    done = models.BooleanField(default=False)
 
     def __str__(self):
         return self.summary
+
+
+class Payment(models.Model):
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True)
+    stripe_charge_id = models.CharField(max_length=50)
+    amount = models.FloatField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.user.username
