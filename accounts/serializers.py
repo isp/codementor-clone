@@ -32,7 +32,7 @@ class ProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Profile
-        exclude = ['users']
+        exclude = ['stripe_customer_id']
 
     def get_job_requests(self, obj):
         return JobSerializer(obj.user.job_set.all(), many=True).data
