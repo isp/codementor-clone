@@ -9,7 +9,7 @@ class PaymentSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'job', 'user', 'timestamp'
         )
-        readonly_fields = (
+        read_only_fields = (
             'id', 'timestamp'
         )
 

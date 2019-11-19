@@ -1,6 +1,5 @@
 from django.conf import settings
 from django.db import models
-from django.db.models.signals import post_save
 from django.contrib.auth import get_user_model
 from multiselectfield import MultiSelectField
 from choices import LANGUAGES, TIME_ZONES, TECHNOLOGIES
@@ -30,14 +29,3 @@ class Freelancer(models.Model):
 
     def __str__(self):
         return f'{self.profile.user} freelancer'
-
-
-def profile_post_save_receiver(sender, instance, **kwargs):
-    profile, created = Profile.objects.get_or_create(user=instance)
-    if created:
-        customer = stripe.Customer.create(email=instance.email)
-        profile.stripe_customer_id = customer['id']
-        profile.save()
-
-
-post_save.connect(profile_post_save_receiver, sender=User)

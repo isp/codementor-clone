@@ -31,8 +31,8 @@ class PaymentCreateView(generics.CreateAPIView):
             make the budget adjustable on the UI
             """
             try:
-                job = Job.objects.get(id=serializer.data.get('job'))
+                job = Job.objects.get(id=serializer.data.get('job'))  # Validate the job belongs to the user
             except Job.DoesNotExist:
                 return response.Response({"detail": "Job does not exist"}, status=status.HTTP_400_BAD_REQUEST)
-            stripe_service.charge(request.user, job.amount)
+            return stripe_service.charge(request.user, job.amount)
 
