@@ -7,6 +7,7 @@ from rest_framework import generics, response, status, views
 from rest_framework.permissions import IsAuthenticated
 
 from jobs.models import Job
+from .models import Payment
 from .serializers import JobPaymentSerializer
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -36,43 +37,63 @@ class CreatePaymentIntentView(views.APIView):
             payment_method_types=request.data['payment_method_types']  # e.g card, apple pay etc.
         )
         try:
-            return response.Response(payment_intent)
+            data = {}
+            data.update(payment_intent)
+            Payment.objects.create(
+                job=job,
+                stripe_payment_intent_id=payment_intent.id
+            )
+            return response.Response(data)
         except Exception as e:
             return response.Response(json.dumps(str(e)), status=status.HTTP_400_BAD_REQUEST)
 
 
-@csrf_exempt
-def webhook_receiver(request):
-    # TODO
-    # You can use webhooks to receive information about asynchronous payment events.
-    # For more about our webhook events check out https://stripe.com/docs/webhooks.
-    webhook_secret = settings.STRIPE_WEBHOOK_SECRET
-    request_data = json.loads(request.data)
+class WebhookReceiver(views.APIView):
 
-    if webhook_secret:
-        # Retrieve the event by verifying the signature using the raw body and secret if webhook signing is configured.
-        signature = request.headers.get('stripe-signature')
-        try:
-            event = stripe.Webhook.construct_event(
-                payload=request.data, sig_header=signature, secret=webhook_secret)
-            data = event['data']
-        except Exception as e:
-            return e
-        # Get the type of webhook event sent - used to check the status of PaymentIntents.
-        event_type = event['type']
-    else:
-        data = request_data['data']
-        event_type = request_data['type']
-    data_object = data['object']
+    @csrf_exempt
+    def post(self, request):
+        # You can use webhooks to receive information about asynchronous payment events.
+        # For more about our webhook events check out https://stripe.com/docs/webhooks.
+        webhook_secret = settings.STRIPE_WEBHOOK_SECRET
+        if webhook_secret:
+            payload = request.body
+            sig_header = request.META['HTTP_STRIPE_SIGNATURE']
+            event = None
+            try:
+                event = stripe.Webhook.construct_event(
+                    payload, sig_header, webhook_secret
+                )
+                print(event.data.object)
+            except ValueError as e:
+                print(e)
+                # Invalid payload
+                return response.Response(status=status.HTTP_400_BAD_REQUEST)
+            except stripe.error.SignatureVerificationError as e:
+                print(e)
+                # Invalid signature
+                return response.Response(status=status.HTTP_400_BAD_REQUEST)
 
-    print('event ' + event_type)
+            if event.type == 'payment_intent.succeeded':
+                # Fulfill any orders, e-mail receipts, etc
+                print("💰 Payment received!")
+                payment_intent = event.data.object  # contains a stripe.PaymentIntent
+                # set the payment as successful
+                payment = Payment.objects.get(stripe_payment_intent_id=payment_intent.id)
+                # TODO: send payment success email
+                payment.status = 'S'
+                payment.save()
 
-    if event_type == 'payment_intent.succeeded':
-        # Fulfill any orders, e-mail receipts, etc
-        print("💰 Payment received!")
+            elif event.type == 'payment_intent.payment_failed':
+                # Notify the customer that their order was not fulfilled
+                print("❌ Payment failed.")
+                payment_intent = event.data.object  # contains a stripe.PaymentIntent
+                # TODO: send payment failure email
+                payment = Payment.objects.get(stripe_payment_intent_id=payment_intent.id)
+                payment.status = 'F'
+                payment.save()
 
-    if event_type == 'payment_intent.payment_failed':
-        # Notify the customer that their order was not fulfilled
-        print("❌ Payment failed.")
+            else:
+                # Unexpected event type
+                return response.Response(status=status.HTTP_400_BAD_REQUEST)
 
-    return response.Response({'status': 'success'})
+            return response.Response(status=status.HTTP_200_OK)
