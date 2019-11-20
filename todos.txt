@@ -13,3 +13,8 @@
 13. In progress (the project can be cancelled by either party in this phase, and payment is refunded back to the client)
 14. Submitted (by freelancer) (payment cannot be refunded anymore - unless unique circumstance)
 15. Accepted (by client) (payment is made to the freelancer)
+
+
+1. Cannot edit or delete the job after a freelancer is linked
+2. Freelancer cannot cancel their application after they are confirmed as the freelancer
+3. Freelancers aren't active until they've verified their account by connecting to stripe (could use a manager on the freelancer model)

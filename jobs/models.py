@@ -1,6 +1,7 @@
-from django.db import models
 from django.contrib.auth import get_user_model
+from django.db import models
 from multiselectfield import MultiSelectField
+
 from choices import TECHNOLOGIES
 
 User = get_user_model()

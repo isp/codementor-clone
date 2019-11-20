@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from jobs.models import Job
 from .models import Payment
 
 
@@ -14,6 +15,7 @@ class PaymentSerializer(serializers.ModelSerializer):
         )
 
 
-class StripePaymentSerializer(serializers.Serializer):
-    token = serializers.CharField(max_length=100)
-    job = serializers.IntegerField()
+class JobPaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Job
+        fields = ('budget',)

@@ -1,3 +1,10 @@
 from django.contrib import admin
 
-# Register your models here.
+from .models import Payment
+
+
+class PaymentAdmin(admin.ModelAdmin):
+    list_display = ['stripe_payment_intent_id']
+
+
+admin.site.register(Payment, PaymentAdmin)

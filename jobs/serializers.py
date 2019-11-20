@@ -1,5 +1,7 @@
-from rest_framework import serializers
+from rest_framework import fields, serializers
+
 from accounts.serializers import UserSerializer
+from choices import TECHNOLOGIES
 from .models import Job
 
 
@@ -7,12 +9,13 @@ class JobSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField()
     applicants = serializers.SerializerMethodField()
     freelancer = serializers.SerializerMethodField()
+    technologies = fields.MultipleChoiceField(choices=TECHNOLOGIES)
     technologies_display = serializers.CharField(source='get_technologies_display', required=False)
 
     class Meta:
         model = Job
         fields = '__all__'
-        read_only_fields = ['user', 'applicants', 'freelancer']
+        read_only_fields = ['user', 'applicants', 'freelancer', 'technologies_display']
 
     def get_applicants(self, obj):
         applicants = []
