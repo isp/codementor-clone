@@ -71,7 +71,6 @@ export const editProfile = (profile, history) => dispatch => {
     data.append('bio', profile.bio);
     data.append('technologies', profile.technologies);
   }
-
   axios.put(profileDetailEditDeleteUrl(profile.id), data, headers)
     .then(response => {
       dispatch({ type: PROFILE_LOADED, payload: response.data });

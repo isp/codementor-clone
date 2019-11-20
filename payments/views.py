@@ -1,38 +1,78 @@
-from django.conf import settings
-from rest_framework import generics
-from rest_framework.permissions import IsAuthenticated
-from rest_framework import response
-from rest_framework import status
+import json
+
 import stripe
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework import generics, response, status, views
+from rest_framework.permissions import IsAuthenticated
 
 from jobs.models import Job
-from .models import Payment
-from .serializers import StripePaymentSerializer
-from .services import stripe_service
+from .serializers import JobPaymentSerializer
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 
-class PaymentCreateView(generics.CreateAPIView):
-    permission_classes = (IsAuthenticated, )
-    serializer_class = StripePaymentSerializer
-    queryset = Payment.objects.all()
+class PublishKeyView(views.APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        return response.Response({'publicKey': settings.STRIPE_PUBLIC_KEY})
+
+
+class JobPaymentDetailView(generics.RetrieveAPIView):
+    queryset = Job.objects.all()
+    serializer_class = JobPaymentSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class CreatePaymentIntentView(views.APIView):
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
-        # doesn't work on test visa card with the number 4242 4242 4242 4242
-        token = self.request.data.get('token')
-        # https://stripe.com/docs/testing#cards
-        serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid():
+        job = Job.objects.get(id=request.data['job'])
+        payment_intent = stripe.PaymentIntent.create(
+            amount=job.budget * 100,  # this value is in cents
+            currency="USD",
+            payment_method_types=request.data['payment_method_types']  # e.g card, apple pay etc.
+        )
+        try:
+            return response.Response(payment_intent)
+        except Exception as e:
+            return response.Response(json.dumps(str(e)), status=status.HTTP_400_BAD_REQUEST)
 
-            """
-            For now I think the amount we charge should come off of the budget of the job. 
-            Instead of allowing a user to specify an amount in the API request, we can rather
-            make the budget adjustable on the UI
-            """
-            try:
-                job = Job.objects.get(id=serializer.data.get('job'))  # Validate the job belongs to the user
-            except Job.DoesNotExist:
-                return response.Response({"detail": "Job does not exist"}, status=status.HTTP_400_BAD_REQUEST)
-            return stripe_service.charge(request.user, job.amount)
 
+@csrf_exempt
+def webhook_receiver(request):
+    # TODO
+    # You can use webhooks to receive information about asynchronous payment events.
+    # For more about our webhook events check out https://stripe.com/docs/webhooks.
+    webhook_secret = settings.STRIPE_WEBHOOK_SECRET
+    request_data = json.loads(request.data)
+
+    if webhook_secret:
+        # Retrieve the event by verifying the signature using the raw body and secret if webhook signing is configured.
+        signature = request.headers.get('stripe-signature')
+        try:
+            event = stripe.Webhook.construct_event(
+                payload=request.data, sig_header=signature, secret=webhook_secret)
+            data = event['data']
+        except Exception as e:
+            return e
+        # Get the type of webhook event sent - used to check the status of PaymentIntents.
+        event_type = event['type']
+    else:
+        data = request_data['data']
+        event_type = request_data['type']
+    data_object = data['object']
+
+    print('event ' + event_type)
+
+    if event_type == 'payment_intent.succeeded':
+        # Fulfill any orders, e-mail receipts, etc
+        print("💰 Payment received!")
+
+    if event_type == 'payment_intent.payment_failed':
+        # Notify the customer that their order was not fulfilled
+        print("❌ Payment failed.")
+
+    return response.Response({'status': 'success'})

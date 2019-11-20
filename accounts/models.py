@@ -1,9 +1,10 @@
-from django.conf import settings
-from django.db import models
-from django.contrib.auth import get_user_model
-from multiselectfield import MultiSelectField
-from choices import LANGUAGES, TIME_ZONES, TECHNOLOGIES
 import stripe
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.db import models
+from multiselectfield import MultiSelectField
+
+from choices import LANGUAGES, TIME_ZONES, TECHNOLOGIES
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 User = get_user_model()
@@ -26,6 +27,7 @@ class Freelancer(models.Model):
     bio = models.TextField()
     technologies = MultiSelectField(choices=TECHNOLOGIES)
     stripe_account_id = models.CharField(max_length=50, blank=True, null=True)
+    active = models.BooleanField(default=False)
 
     def __str__(self):
         return f'{self.profile.user} freelancer'

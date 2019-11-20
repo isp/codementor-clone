@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { MDBBtn, MDBCard, MDBCardBody, MDBCardTitle } from 'mdbreact';
@@ -7,11 +7,11 @@ import { useParams, Link } from 'react-router-dom';
 import { loadJobDetail, applyForJob } from '../../actions/jobs';
 import JobDeleteButton from './JobDeleteButton';
 import ApplicantList from './ApplicantList';
-
+import Payment from './Payment'
 
 const JobDetail = props => {
   const { id } = useParams();
-
+  const [paymentVisible, setPaymentVisible] = useState(false)
   useEffect(() => props.loadJobDetail(id), [id]);
 
   const { auth } = props;
@@ -67,7 +67,16 @@ const JobDetail = props => {
                 <Link to={`/profile/${freelancer.id}`}>
                   {freelancer.first_name} {freelancer.last_name}
                 </Link>
-                {isOwner && <Link to="/payment"><MDBBtn color="warning" size="sm">Pay</MDBBtn></Link>}
+                {isOwner &&
+                  <React.Fragment>
+                    {paymentVisible ? 
+                  <Payment job={props.jobDetail.job} /> : 
+                  <MDBBtn size="sm" color='deep-orange' onClick={setPaymentVisible}>
+                    Pay
+                  </MDBBtn>
+                  }
+                </React.Fragment>
+                }
               </div>
           }
           <br />
