@@ -27,6 +27,20 @@ class JobDetailEditDeleteView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = JobSerializer
     permission_classes = [IsOwnerOrReadOnly]
 
+    def put(self, request, *args, **kwargs):
+        job = Job.objects.get(pk=self.kwargs['pk'])
+        if job.freelancer:
+            raise PermissionDenied
+        else:
+            return self.update(request, *args, **kwargs)
+
+    def delete(self, request, *args, **kwargs):
+        job = Job.objects.get(pk=self.kwargs['pk'])
+        if job.freelancer:
+            raise PermissionDenied
+        else:
+            return self.destroy(request, *args, **kwargs)
+
 
 class ApplyForJobView(generics.RetrieveAPIView):
     queryset = Job.objects.all()
@@ -35,9 +49,9 @@ class ApplyForJobView(generics.RetrieveAPIView):
 
     def get(self, request, *args, **kwargs):
         user = request.user
-        if hasattr(user.profile, 'freelancer'):
-            job = Job.objects.get(pk=self.kwargs['pk'])
+        job = Job.objects.get(pk=self.kwargs['pk'])
 
+        if hasattr(user.profile, 'freelancer') and not user == job.freelancer:
             if user in job.applicants.all():
                 job.applicants.remove(user)
             else:

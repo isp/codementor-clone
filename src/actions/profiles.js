@@ -18,6 +18,7 @@ import {
 } from '../endpoints';
 import { addToken } from '../utils';
 import { displayMessage } from './messages';
+import { loadUser } from './auth';
 
 
 export const loadFreelancerList = () => dispatch => {
@@ -74,6 +75,7 @@ export const editProfile = (profile, history) => dispatch => {
   axios.put(profileDetailEditDeleteUrl(profile.id), data, headers)
     .then(response => {
       dispatch({ type: PROFILE_LOADED, payload: response.data });
+      loadUser(dispatch);
       history.push(`/profile/${profile.id}`)
     })
     .catch(error => {
@@ -104,6 +106,7 @@ export const becomeFreelancer = (data, setFormIsVisible) => dispatch => {
     .then(response => {
       dispatch({ type: PROFILE_LOADED, payload: response.data });
       setFormIsVisible(false);
+      loadUser(dispatch);
       dispatch(displayMessage('success', 'Success! You\'ve become a freelancer.'))
     })
     .catch(error => {
@@ -118,6 +121,7 @@ export const unbecomeFreelancer = () => dispatch => {
   axios.get(unbecomeFreelancerUrl, addToken())
     .then(response => {
       dispatch({ type: PROFILE_LOADED, payload: response.data });
+      loadUser(dispatch);
     })
     .catch(error => {
       dispatch({ type: PROFILE_ERROR });
@@ -137,3 +141,4 @@ export const hireFreelancer = (freelancer_id, job_id) => dispatch => {
 };
 
 // todo implement logout function inside deleteProfile function
+

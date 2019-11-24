@@ -11,7 +11,9 @@ import Payment from './Payment'
 
 const JobDetail = props => {
   const { id } = useParams();
-  const [paymentVisible, setPaymentVisible] = useState(false)
+
+  const [paymentVisible, setPaymentVisible] = useState(false);
+
   useEffect(() => props.loadJobDetail(id), [id]);
 
   const { auth } = props;
@@ -19,13 +21,13 @@ const JobDetail = props => {
 
   let isOwner;
   let hasApplied;
+  let isAccepted;
   let jobHasLoaded;
   if (Object.keys(auth.user).length && Object.keys(props.jobDetail.job).length) {
-    if (auth.user.username === user) {
-      isOwner = true
-    }
+    if (auth.user.username === user) isOwner = true;
     // check if user has applied for the job
     hasApplied = !!applicants.filter(applicant => applicant.id === auth.user.id).length;
+    if (freelancer && auth.user.username === freelancer.username) isAccepted = true;
     jobHasLoaded = true
   }
 
@@ -34,18 +36,21 @@ const JobDetail = props => {
       <MDBCardBody className="position-relative">
         <div style={{ position: 'absolute', top: '8px', right: '5px' }}>
         {
-          isOwner ?
+          isOwner && !freelancer &&
             <>
-              <Link to={{ pathname: '/job-form', job: props.jobDetail.job }}><MDBBtn size="sm">Edit</MDBBtn></Link>
-              <JobDeleteButton />
+              <Link to={{pathname: '/job-form', job: props.jobDetail.job}}>
+                <MDBBtn size="sm" disabled={!!freelancer}>Edit</MDBBtn>
+              </Link>
+              <JobDeleteButton/>
             </>
-          :
-            auth.isAuthenticated &&
-              <>
-                <MDBBtn size="sm" color={hasApplied ? 'deep-orange' : 'primary'} onClick={() => props.applyForJob(id)}>
-                  {hasApplied ? 'Cancel Your Application' : 'Apply For The Job'}
-                </MDBBtn>
-              </>
+        }
+        {
+          jobHasLoaded && auth.isAuthenticated && !isOwner && !isAccepted &&
+            <>
+              <MDBBtn size="sm" color={hasApplied ? 'deep-orange' : 'primary'} onClick={() => props.applyForJob(id)}>
+                {hasApplied ? 'Cancel Your Application' : 'Apply For The Job'}
+              </MDBBtn>
+            </>
         }
         </div>
         <MDBCardTitle className="text-center">{summary}</MDBCardTitle>

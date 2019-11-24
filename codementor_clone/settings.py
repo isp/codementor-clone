@@ -157,7 +157,7 @@ CORS_ORIGIN_WHITELIST = (
     'http://localhost:3000',
 )
 
-# STRIPE_SECRET_KEY = os.environ.get('stripe_secret_key_test')
-STRIPE_PUBLIC_KEY = ''
-STRIPE_SECRET_KEY = ''
+
+STRIPE_PUBLIC_KEY = os.environ.get('stripe_publishable_key_test')
+STRIPE_SECRET_KEY = os.environ.get('stripe_secret_key_test')
 STRIPE_WEBHOOK_SECRET = ''
